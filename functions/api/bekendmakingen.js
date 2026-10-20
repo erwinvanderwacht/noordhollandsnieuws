@@ -5,6 +5,19 @@ const dec = (s) => s.replace(/&(amp|lt|gt|quot|apos|#39);/g, (m) => DEC[m] || m)
 const pick = (xml, tag) => { const m = xml.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`)); return m ? dec(m[1].trim()) : ''; };
 const TYPE = { omgevingsvergunning: 'Vergunning', verkeersbesluit: 'Verkeer', 'beleidsregel': 'Beleid', verordening: 'Regels', 'ruimtelijk plan of omgevingsdocument': 'Plan', 'verkeersbesluit, gemeente': 'Verkeer' };
 
+function label(t) {
+  const l = t.toLowerCase();
+  if (TYPE[l]) return TYPE[l];
+  if (l.includes('verkeer')) return 'Verkeer';
+  if (l.includes('vergunning')) return 'Vergunning';
+  if (l.includes('beleid')) return 'Beleid';
+  if (l.includes('verordening') || l.includes('regeling')) return 'Regels';
+  if (l.includes('plan') || l.includes('omgevings')) return 'Plan';
+  if (l.includes('subsidie')) return 'Subsidie';
+  if (l.includes('benoeming') || l.includes('mandaat')) return 'Bestuur';
+  return t ? t[0].toUpperCase() + t.slice(1, 24) : 'Bekendmaking';
+}
+
 export async function onRequestGet({ request }) {
   const u = new URL(request.url);
   const g = (u.searchParams.get('g') || 'Noord-Holland').replace(/["\\]/g, '').slice(0, 60);
@@ -22,7 +35,7 @@ export async function onRequestGet({ request }) {
       return {
         id,
         title: pick(r, 'dcterms:title'),
-        type: TYPE[rawType.toLowerCase()] || (rawType ? rawType[0].toUpperCase() + rawType.slice(1) : ''),
+        type: label(rawType),
         date: pick(r, 'dcterms:available') || pick(r, 'dcterms:modified'),
         subject: pick(r, 'dcterms:subject'),
         creator: pick(r, 'dcterms:creator'),
